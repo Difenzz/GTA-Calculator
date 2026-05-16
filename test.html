@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTA V Online - Expert Heist Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 font-sans">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 border-b-2 pb-6 border-yellow-500 gap-4">
+            <div class="text-center sm:text-left">
+                <h1 id="title" class="text-4xl font-extrabold text-yellow-400 tracking-wider uppercase">Los Santos Heist Calculator</h1>
+                <p id="subtitle" class="text-gray-400 mt-2">Expert edition featuring real-time bag optimization, actual game fees, and crew limits.</p>
+            </div>
+            <div class="flex justify-center items-center gap-2 self-center">
+                <label for="lang-select" class="text-xs text-gray-400 font-bold uppercase font-mono">Language:</label>
+                <select id="lang-select" class="bg-gray-800 border border-gray-700 text-white font-bold text-sm rounded p-2 focus:outline-none focus:border-yellow-500 cursor-pointer" onchange="changeLanguage(this.value)">
+                    <option value="en">English</option>
+                    <option value="fr">Français</option>
+                    <option value="es">Español</option>
+                </select>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-2 md:flex md:justify-center gap-3 mb-8">
+            <button onclick="switchHeist('cayo')" id="btn-cayo" class="px-4 py-3 font-bold uppercase rounded bg-yellow-500 text-black shadow-lg transition-all cursor-pointer text-sm">Cayo Perico</button>
+            <button onclick="switchHeist('casino')" id="btn-casino" class="px-4 py-3 font-bold uppercase rounded bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all cursor-pointer text-sm">Diamond Casino</button>
+            <button onclick="switchHeist('doomsday')" id="btn-doomsday" class="px-4 py-3 font-bold uppercase rounded bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all cursor-pointer text-sm">Doomsday</button>
+            <button onclick="switchHeist('classic')" id="btn-classic" class="px-4 py-3 font-bold uppercase rounded bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all cursor-pointer text-sm">Classic Apartment</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 bg-gray-900 p-6 rounded-lg border border-gray-800 shadow-xl">
+                
+                <div id="sec-cayo" class="space-y-4">
+                    <h2 id="lbl-config-cayo" class="text-2xl font-bold text-yellow-400 border-b border-gray-800 pb-2">Configuration: Cayo Perico</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label id="lbl-hard-mode" class="block text-xs font-semibold mb-1 text-gray-400">Hard Mode</label>
+                            <select id="cayo-hard" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-sm text-white focus:outline-none focus:border-yellow-500" onchange="validateAndCalculate()">
+                                <option value="no" id="opt-hard-no">No</option>
+                                <option value="yes" id="opt-hard-yes">Yes (+10% Main Target value)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label id="lbl-cooldown" class="block text-xs font-semibold mb-1 text-gray-400">Within 72h Cooldown Nerf</label>
+                            <select id="cayo-72h" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-sm text-white focus:outline-none focus:border-yellow-500" onchange="validateAndCalculate()">
+                                <option value="no" id="opt-cool-no">No</option>
+                                <option value="yes" id="opt-cool-yes">Yes (-10% Secondary Loot value)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label id="lbl-main-target" class="block text-xs font-semibold mb-1 text-gray-400">Main Target</label>
+                        <select id="cayo-main" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-sm text-white focus:outline-none focus:border-yellow-500" onchange="validateAndCalculate()">
+                            <option value="900000" id="opt-tequila">Sinsimito Tequila ($900,000)</option>
+                            <option value="1000000" id="opt-ruby">Ruby Necklace ($1,000,000)</option>
+                            <option value="1100000" id="opt-bonds">Bearer Bonds ($1,100,000)</option>
+                            <option value="1300000" id="opt-diamond">Pink Diamond ($1,300,000)</option>
+                            <option value="1900000" id="opt-panther">Panther Statue ($1,900,000)</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-gray-950 p-4 rounded-lg border border-gray-800 space-y-3">
+                        <h3 id="lbl-scouted-secondary" class="text-sm font-bold text-yellow-500">Scouted Secondary Targets (Available Stacks)</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                            <div>
+                                <label id="lbl-loot-gold" class="block text-gray-400 mb-1 text-center">Gold</label>
+                                <input type="number" id="cayo-gold" value="0" min="0" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-center font-mono focus:outline-none focus:border-yellow-500" oninput="validateAndCalculate()">
+                            </div>
+                            <div>
+                                <label id="lbl-loot-coke" class="block text-gray-400 mb-1 text-center">Cocaine</label>
+                                <input type="number" id="cayo-coke" value="0" min="0" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-center font-mono focus:outline-none focus:border-yellow-500" oninput="validateAndCalculate()">
+                            </div>
+                            <div>
+                                <label id="lbl-loot-weed" class="block text-gray-400 mb-1 text-center">Weed</label>
+                                <input type="number" id="cayo-weed" value="0" min="0" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-center font-mono focus:outline-none focus:border-yellow-500" oninput="validateAndCalculate()">
+                            </div>
+                            <div>
+                                <label id="lbl-loot-paint" class="block text-gray-400 mb-1 text-center">Paintings</label>
+                                <input type="number" id="cayo-paint" value="1" min="0" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-center font-mono focus:outline-none focus:border-yellow-500" oninput="validateAndCalculate()">
+                            </div>
+                            <div>
+                                <label id="lbl-loot-cash" class="block text-gray-400 mb-1 text-center">Cash</label>
+                                <input type="number" id="cayo-cash" value="6" min="0" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-center font-mono focus:outline-none focus:border-yellow-500" oninput="validateAndCalculate()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label id="lbl-office-safe" class="block text-xs font-semibold mb-1 text-gray-400">Office Wall Safe (~$59,500)</label>
+                            <select id="cayo-safe" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-sm text-white focus:outline-none" onchange="validateAndCalculate()">
+                                <option value="59500" id="opt-safe-yes">Looted (Yes)</option>
+                                <option value="0" id="opt-safe-no">Skipped (No)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label id="lbl-elite-challenge" class="block text-xs font-semibold mb-1 text-gray-400">Elite Challenge (Per player)</label>
+                            <select id="cayo-elite" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-sm text-white focus:outline-none" onchange="validateAndCalculate()">
+                                <option value="0" id="opt-elite-no">Failed / No</option>
+                                <option value="50000" id="opt-elite-yes">Completed (+$50,000)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="sec-casino" class="space-y-6 hidden">
+                    <h2 id="lbl-config-casino" class="text-2xl font-bold text-yellow-400 border-b border-gray-800 pb-2">Configuration: Diamond Casino</h2>
+                    <div>
+                        <label id="lbl-vault-contents" class="block text-sm font-semibold mb-2 text-gray-300">Vault Contents</label>
+                        <select id="casino-main" class="w-full bg-gray-800 border border-gray-700 p-3 rounded text-white focus:outline-none" onchange="validateAndCalculate()">
+                            <option value="2115000" id="opt-cas-cash">Cash ($2,115,000)</option>
+                            <option value="2585000" id="opt-cas-art">Artwork ($2,585,000)</option>
+                            <option value="2843500" id="opt-cas-gold">Gold ($2,843,500)</option>
+                            <option value="3619000" id="opt-cas-dia">Diamonds ($3,619,000)</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label id="lbl-gunman" class="block text-xs font-semibold mb-2 text-gray-400">Gunman (Crew Cut)</label>
+                            <select id="casino-gunman" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-white text-xs focus:outline-none" onchange="validateAndCalculate()">
+                                <option value="0.03">Karl Abolaji (3%)</option> <option value="0.05">Charlie Reed (5%)</option> <option value="0.07">Patrick McReary (7%)</option> <option value="0.09">Gustavo Mota (9%)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label id="lbl-driver" class="block text-xs font-semibold mb-2 text-gray-400">Driver (Crew Cut)</label>
+                            <select id="casino-driver" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-white text-xs focus:outline-none" onchange="validateAndCalculate()">
+                                <option value="0.03">Karim Denz (3%)</option> <option value="0.05">Taliana Martinez (5%)</option> <option value="0.07">Eddie Toh (7%)</option> <option value="0.09">Chester McCoy (9%)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label id="lbl-hacker" class="block text-xs font-semibold mb-2 text-gray-400">Hacker (Crew Cut)</label>
+                            <select id="casino-hacker" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-white text-xs focus:outline-none" onchange="validateAndCalculate()">
+                                <option value="0.03">Rickie Lukens (3%)</option> <option value="0.07">Christian Feltz (7%)</option> <option value="0.09">Paige Harris (9%)</option> <option value="0.10">Avi Schwartzman (10%)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label id="lbl-damage-lost" class="block text-sm font-semibold mb-2 text-gray-300">Damage Lost (Loot Drop)</label>
+                            <input type="number" id="casino-damage" value="0" class="w-full bg-gray-800 border border-gray-700 p-3 rounded text-white focus:outline-none" oninput="validateAndCalculate()">
+                        </div>
+                        <div>
+                            <label id="lbl-elite-casino" class="block text-sm font-semibold mb-2 text-gray-300">Elite Challenge</label>
+                            <select id="casino-elite" class="w-full bg-gray-800 border border-gray-700 p-3 rounded text-white focus:outline-none" onchange="validateAndCalculate()">
+                                <option value="0" id="opt-el-cas-no">No</option> <option value="50000" id="opt-el-cas-yes">Yes (+$50,000)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="sec-doomsday" class="space-y-6 hidden">
+                    <h2 id="lbl-config-doomsday" class="text-2xl font-bold text-yellow-400 border-b border-gray-800 pb-2">Configuration: Doomsday Heist</h2>
+                    <div>
+                        <label id="lbl-act-select" class="block text-sm font-semibold mb-2 text-gray-300">Act Select</label>
+                        <select id="doomsday-main" class="w-full bg-gray-800 border border-gray-700 p-3 rounded text-white focus:outline-none" onchange="validateAndCalculate()">
+                            <option value="812500" id="opt-doom-a1">Act I: The Data Breaches ($812,500)</option>
+                            <option value="1187500" id="opt-doom-a2">Act II: The Bogdan Problem ($1,187,500)</option>
+                            <option value="1500000" id="opt-doom-a3">Act III: The Doomsday Scenario ($1,500,000)</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label id="lbl-difficulty" class="block text-sm font-semibold mb-2 text-gray-300">Difficulty</label>
+                            <select id="doomsday-diff" class="w-full bg-gray-800 border border-gray-700 p-3 rounded text-white focus:outline-none" onchange="validateAndCalculate()">
+                                <option value="normal" id="opt-diff-norm">Normal</option> <option value="hard" id="opt-diff-hard">Hard (+25%)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label id="lbl-elite-doom" class="block text-sm font-semibold mb-2 text-gray-300">Elite Challenge</label>
+                            <select id="doomsday-elite" class="w-full bg-gray-800 border border-gray-700 p-3 rounded text-white focus:outline-none" onchange="validateAndCalculate()">
+                                <option value="0" id="opt-el-doom-no">No</option> <option value="50000" id="opt-el-doom-yes">Yes (+$50,000)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="sec-classic" class="space-y-6 hidden">
+                    <h2 id="lbl-config-classic" class="text-2xl font-bold text-yellow-400 border-b border-gray-800 pb-2">Configuration: Apartment Heists</h2>
+                    <div>
+                        <label id="lbl-heist-mission" class="block text-sm font-semibold mb-2 text-gray-300">Heist Mission</label>
+                        <select id="classic-main" class="w-full bg-gray-800 border border-gray-700 p-3 rounded text-white focus:outline-none" onchange="onClassicHeistChange()">
+                            <option value="143750" id="opt-cls-fleeca">The Fleeca Job ($143,750 - 2 Players)</option>
+                            <option value="500000" id="opt-cls-prison">The Prison Break ($500,000)</option>
+                            <option value="675000" id="opt-cls-humane">The Humane Labs Raid ($675,000)</option>
+                            <option value="505000" id="opt-cls-seriesa">Series A Funding ($505,000)</option>
+                            <option value="1250000" id="opt-cls-pacific">The Pacific Standard Job ($1,250,000)</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label id="lbl-diff-classic" class="block text-sm font-semibold mb-2 text-gray-300">Difficulty</label>
+                            <select id="classic-diff" class="w-full bg-gray-800 border border-gray-700 p-3 rounded text-white focus:outline-none" onchange="validateAndCalculate()">
+                                <option value="hard" id="opt-cls-hard">Hard (Base Standard Max)</option> <option value="normal" id="opt-cls-norm">Normal (-50% from Hard)</option> <option value="easy" id="opt-cls-easy">Easy (-75% from Hard)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label id="lbl-pacific-drop" class="block text-sm font-semibold mb-2 text-gray-300">Pacific Standard Cash Dropped</label>
+                            <input type="number" id="classic-damage" value="0" class="w-full bg-gray-800 border border-gray-700 p-3 rounded text-white focus:outline-none" oninput="validateAndCalculate()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-6 border-t border-gray-800">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 id="lbl-finale-cut" class="text-lg font-bold text-gray-200">Finale Cut Allocation (%)</h3>
+                        <span class="text-sm font-bold bg-gray-800 px-3 py-1 rounded text-yellow-400 font-mono" id="total-pct-badge">Total: 100%</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div>
+                            <label id="lbl-leader-cut" class="block text-xs text-gray-400 mb-1">Leader (You)</label>
+                            <input type="number" id="cut-p1" value="85" min="15" max="100" step="5" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-white text-center font-bold font-mono focus:outline-none focus:border-yellow-500" oninput="validateAndCalculate()">
+                        </div>
+                        <div>
+                            <label id="lbl-m1-cut" class="block text-xs text-gray-400 mb-1">Member 1</label>
+                            <input type="number" id="cut-p2" value="15" min="0" max="85" step="5" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-white text-center font-mono focus:outline-none focus:border-yellow-500" oninput="validateAndCalculate()">
+                        </div>
+                        <div id="wrapper-cut-p3">
+                            <label id="lbl-m2-cut" class="block text-xs text-gray-400 mb-1">Member 2</label>
+                            <input type="number" id="cut-p3" value="0" min="0" max="85" step="5" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-white text-center font-mono focus:outline-none focus:border-yellow-500" oninput="validateAndCalculate()">
+                        </div>
+                        <div id="wrapper-cut-p4">
+                            <label id="lbl-m3-cut" class="block text-xs text-gray-400 mb-1">Member 3</label>
+                            <input type="number" id="cut-p4" value="0" min="0" max="85" step="5" class="w-full bg-gray-800 border border-gray-700 p-2 rounded text-white text-center font-mono focus:outline-none focus:border-yellow-500" oninput="validateAndCalculate()">
+                        </div>
+                    </div>
+                    <div id="error-box" class="mt-5 p-4 bg-red-950/80 border border-red-800 rounded-lg text-red-300 text-sm hidden">
+                        <p id="error-msg" class="font-medium"></p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="bg-gray-900 p-6 rounded-lg border-2 border-yellow-500 shadow-xl flex flex-col justify-between h-fit sticky top-4">
+                <div>
+                    <h2 id="lbl-statement-title" class="text-2xl font-bold text-yellow-400 uppercase tracking-wide mb-4 text-center">Final Statement</h2>
+                    
+                    <div id="cayo-bag-analyzer" class="mb-4 bg-gray-950 p-3 rounded border border-gray-800 text-xs space-y-1">
+                        <h4 id="lbl-optimal-strat" class="text-yellow-500 font-bold uppercase">Optimal Loot Strategy:</h4>
+                        <div id="cayo-bag-details" class="font-mono text-gray-400">Processing calculations...</div>
+                        <div class="pt-1 border-t border-gray-900 font-bold text-white"><span id="lbl-bag-usage">Total Bag Usage:</span> <span id="cayo-bag-sum" class="text-yellow-400">0.00</span> / <span id="cayo-bag-max">2.00</span></div>
+                    </div>
+
+                    <div id="results-wrapper" class="space-y-3 text-xs">
+                        <div class="flex justify-between border-b border-gray-800 pb-1">
+                            <span id="lbl-gross-loot" class="text-gray-400">Gross Loot Secured:</span>
+                            <span id="res-brut" class="font-mono text-white">$0</span>
+                        </div>
+                        <div id="row-safe" class="flex justify-between border-b border-gray-800 pb-1 text-green-400">
+                            <span id="lbl-safe-cash">Office Safe Cash:</span>
+                            <span id="res-safe" class="font-mono">+$0</span>
+                        </div>
+                        <div id="row-fencing" class="flex justify-between border-b border-gray-800 pb-1 text-red-400">
+                            <span id="label-fencing">Fencing Fee (10%):</span>
+                            <span id="res-fencing" class="font-mono">-$0</span>
+                        </div>
+                        <div id="row-pavel" class="flex justify-between border-b border-gray-800 pb-1 text-red-400">
+                            <span id="lbl-pavel-fee">Pavel Fee (2%):</span>
+                            <span id="res-pavel" class="font-mono">-$0</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-800 pb-1 text-green-400">
+                            <span id="lbl-elite-bonus">Elite Challenge Bonus:</span>
+                            <span id="res-elite" class="font-mono">+$0</span>
+                        </div>
+                        <div class="flex justify-between pt-2 text-sm font-bold text-yellow-400 border-t-2 border-dashed border-gray-700">
+                            <span id="lbl-max-profit">Max Possible Profit:</span>
+                            <span id="res-net" class="font-mono text-base">$0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 bg-gray-950 p-4 rounded border border-gray-800">
+                    <h3 id="lbl-maze-deposits" class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Maze Bank Electronic Deposits</h3>
+                    <div id="gains-wrapper" class="space-y-2 font-mono text-xs">
+                        <div class="flex justify-between text-yellow-400 font-bold border-b border-gray-900 pb-1">
+                            <span id="lbl-row-leader">Leader:</span> <span id="gain-p1">$0</span>
+                        </div>
+                        <div id="row-gain-p2" class="flex justify-between text-gray-300 border-b border-gray-900 pb-1 hidden">
+                            <span id="lbl-row-m1">Member 1:</span> <span id="gain-p2">$0</span>
+                        </div>
+                        <div id="row-gain-p3" class="flex justify-between text-gray-300 border-b border-gray-900 pb-1 hidden">
+                            <span id="lbl-row-m2">Member 2:</span> <span id="gain-p3">$0</span>
+                        </div>
+                        <div id="row-gain-p4" class="flex justify-between text-gray-300 hidden">
+                            <span id="lbl-row-m3">Member 3:</span> <span id="gain-p4">$0</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentHeist = 'cayo';
+        let currentLang = 'en';
+
+        // Translation Sheet Engine
+        const translations = {
+            en: {
+                title: "Los Santos Heist Calculator",
+                subtitle: "Expert edition featuring real-time bag optimization, actual game fees, and crew limits.",
+                configCayo: "Configuration: Cayo Perico",
+                hardMode: "Hard Mode",
+                hardNo: "No",
+                hardYes: "Yes (+10% Main Target value)",
+                cooldown: "Within 72h Cooldown Nerf",
+                coolNo: "No",
+                coolYes: "Yes (-10% Secondary Loot value)",
+                mainTarget: "Main Target",
+                scoutedSecondary: "Scouted Secondary Targets (Available Stacks)",
+                gold: "Gold",
+                coke: "Cocaine",
+                weed: "Weed",
+                paint: "Paintings",
+                cash: "Cash",
+                officeSafe: "Office Wall Safe (~$59,500)",
+                safeYes: "Looted (Yes)",
+                safeNo: "Skipped (No)",
+                eliteChallenge: "Elite Challenge (Per player)",
+                eliteNo: "Failed / No",
+                eliteYes: "Completed (+$50,000)",
+                
+                configCasino: "Configuration: Diamond Casino",
+                vaultContents: "Vault Contents",
+                casCash: "Cash ($2,115,000)",
+                casArt: "Artwork ($2,585,000)",
+                casGold: "Gold ($2,843,500)",
+                casDia: "Diamonds ($3,619,000)",
+                gunman: "Gunman (Crew Cut)",
+                driver: "Driver (Crew Cut)",
+                hacker: "Hacker (Crew Cut)",
+                damageLost: "Damage Lost (Loot Drop)",
+                eliteCasino: "Elite Challenge",
+                
+                configDoomsday: "Configuration: Doomsday Heist",
+                actSelect: "Act Select",
+                doomA1: "Act I: The Data Breaches ($812,500)",
+                doomA2: "Act II: The Bogdan Problem ($1,187,500)",
+                doomA3: "Act III: The Doomsday Scenario ($1,500,000)",
+                difficulty: "Difficulty",
+                diffNorm: "Normal",
+                diffHard: "Hard (+25%)",
+                eliteDoom: "Elite Challenge",
+                
+                configClassic: "Configuration: Apartment Heists",
+                heistMission: "Heist Mission",
+                clsFleeca: "The Fleeca Job ($143,750 - 2 Players)",
+                clsPrison: "The Prison Break ($500,000)",
+                clsHumane: "The Humane Labs Raid ($675,000)",
+                clsSeriesa: "Series A Funding ($505,000)",
+                clsPacific: "The Pacific Standard Job ($1,250,000)",
+                clsHard: "Hard (Base Standard Max)",
+                clsNorm: "Normal (-50% from Hard)",
+                clsEasy: "Easy (-75% from Hard)",
+                pacificDrop: "Pacific Standard Cash Dropped",
+                
+                finaleCut: "Finale Cut Allocation (%)",
+                leaderCut: "Leader (You)",
+                m1Cut: "Member 1",
+                m2Cut: "Member 2",
+                m3Cut: "Member 3",
+                
+                statementTitle: "Final Statement",
+                optimalStrat: "Optimal Loot Strategy:",
+                bagUsage: "Total Bag Usage:",
+                grossLoot: "Gross Loot Secured:",
+                safeCash: "Office Safe Cash:",
+                pavelFee: "Pavel Fee (2%):",
+                eliteBonus: "Elite Challenge Bonus:",
+                maxProfit: "Max Possible Profit:",
+                mazeDeposits: "Maze Bank Electronic Deposits",
+                rowLeader: "Leader:",
+                rowM1: "Member 1:",
+                rowM2: "Member 2:",
+                rowM3: "Member 3:",
+                
+                errSum: "⚠️ <strong>Allocation Error:</strong> Total cuts must sum to exactly 100%.",
+                errCut: "⚠️ <strong>Cut Denied:</strong> Rockstar restrictions prohibit cuts below 15% for any active member (Check Member {x}).",
+                errCasino: "⚠️ <strong>Launch Blocked:</strong> The Diamond Casino Heist requires a minimum of 2 players to start.",
+                errDoom: "⚠️ <strong>Launch Blocked:</strong> The Doomsday Heist cannot be launched solo. Minimum 2 players required.",
+                errFleeca: "⚠️ <strong>Team Limit:</strong> The Fleeca Job can only be played with exactly 2 players.",
+                errClassic: "⚠️ <strong>Team Requirements:</strong> This classic heist requires a full crew of exactly 4 active players.",
+                takeText: "Take: {x}x {item}",
+                noSecondary: "No secondary targets selected."
+            },
+            fr: {
+                title: "Calculateur de Braquages Los Santos",
+                subtitle: "Édition Expert avec optimisation des sacs en temps réel, frais réels et limites d'équipe.",
+                configCayo: "Configuration : Cayo Perico",
+                hardMode: "Mode Difficile",
+                hardNo: "Non",
+                hardYes: "Oui (+10% sur la cible principale)",
+                cooldown: "Malus de rechargement -72h",
+                coolNo: "Non",
+                coolYes: "Oui (-10% sur le butin secondaire)",
+                mainTarget: "Objectif Principal",
+                scoutedSecondary: "Butins Secondaires Repérés (Nombre de tas)",
+                gold: "Or",
+                coke: "Cocaïne",
+                weed: "Weed",
+                paint: "Tableaux",
+                cash: "Argent Liquide",
+                officeSafe: "Coffre-fort du Bureau (~$59,500)",
+                safeYes: "Fouillé (Oui)",
+                safeNo: "Oublié (Non)",
+                eliteChallenge: "Défi Élite (Par joueur)",
+                eliteNo: "Échoué / Non",
+                eliteYes: "Réussi (+$50,000)",
+                
+                configCasino: "Configuration : Diamond Casino",
+                vaultContents: "Contenu de la Voûte",
+                casCash: "Argent Liquide ($2,115,000)",
+                casArt: "Tableaux ($2,585,000)",
+                casGold: "Or ($2,843,500)",
+                casDia: "Diamants ($3,619,000)",
+                gunman: "Braqueur (Part Crew)",
+                driver: "Chauffeur (Part Crew)",
+                hacker: "Pirate (Part Crew)",
+                damageLost: "Pertes Dégâts (Balles)",
+                eliteCasino: "Défi Élite",
+                
+                configDoomsday: "Configuration : Fin du Monde (Doomsday)",
+                actSelect: "Sélection de l'Acte",
+                doomA1: "Acte I : Fuite des Données ($812,500)",
+                doomA2: "Acte II : Le Problème Bogdan ($1,187,500)",
+                doomA3: "Acte III : Un Scénario de Fin du Monde ($1,500,000)",
+                difficulty: "Difficulté",
+                diffNorm: "Normal",
+                diffHard: "Difficile (+25%)",
+                eliteDoom: "Défi Élite",
+                
+                configClassic: "Configuration : Braquages d'Appartement",
+                heistMission: "Mission de Braquage",
+                clsFleeca: "Braquage de la Fleeca ($143,750 - 2 Joueurs)",
+                clsPrison: "Sortie de Prison ($500,000)",
+                clsHumane: "Raid sur les Labos Humane ($675,000)",
+                clsSeriesa: "Financement Initial ($505,000)",
+                clsPacific: "Casse de la Pacific Standard ($1,250,000)",
+                clsHard: "Difficile (Valeur standard de base)",
+                clsNorm: "Normal (-50% par rapport au mode Difficile)",
+                clsEasy: "Facile (-75% par rapport au mode Difficile)",
+                pacificDrop: "Argent perdu au sac (Pacific Standard)",
+                
+                finaleCut: "Parts du Tableau Final (%)",
+                leaderCut: "Hôte (Toi)",
+                m1Cut: "Joueur 2",
+                m2Cut: "Joueur 3",
+                m3Cut: "Joueur 4",
+                
+                statementTitle: "Facture Finale",
+                optimalStrat: "Stratégie de Loot Optimale :",
+                bagUsage: "Remplissage global des sacs :",
+                grossLoot: "Butin Brut Récupéré :",
+                safeCash: "Coffre du Bureau :",
+                pavelFee: "Part de Pavel (2%) :",
+                eliteBonus: "Bonus Défi Élite :",
+                maxProfit: "Bénéfice Max Possible :",
+                mazeDeposits: "Versements Electroniques Maze Bank",
+                rowLeader: "Hôte :",
+                rowM1: "Joueur 2 :",
+                rowM2: "Joueur 3 :",
+                rowM3: "Joueur 4 :",
+                
+                errSum: "⚠️ <strong>Erreur de Répartition :</strong> La somme des parts doit faire exactement 100%.",
+                errCut: "⚠️ <strong>Part Illégale :</strong> Rockstar impose un cut de 15% minimum par membre actif (Vérifie le Joueur {x}).",
+                errCasino: "⚠️ <strong>Lancement Impossible :</strong> Le braquage du Casino nécessite au moins 2 joueurs.",
+                errDoom: "⚠️ <strong>Lancement Impossible :</strong> Le braquage Doomsday nécessite au moins 2 joueurs.",
+                errFleeca: "⚠️ <strong>Limite d'Équipe :</strong> Mission Fleeca exclusive pour exactement 2 joueurs.",
+                errClassic: "⚠️ <strong>Équipe Requise :</strong> Ce braquage nécessite obligatoirement une équipe de 4 joueurs.",
+                takeText: "Prendre : {x}x {item}",
+                noSecondary: "Aucun butin secondaire sélectionné."
+            },
+            es: {
+                title: "Calculadora de Golpes Los Santos",
+                subtitle: "Edición Experto con optimización de bolsas en tiempo real, tarifas reales del juego y límites.",
+                configCayo: "Configuración: Cayo Perico",
+                hardMode: "Modo Difícil",
+                hardNo: "No",
+                hardYes: "Sí (+10% al objetivo principal)",
+                cooldown: "Penalización de Cooldown -72h",
+                coolNo: "No",
+                coolYes: "Sí (-10% al botín secundario)",
+                mainTarget: "Objetivo Principal",
+                scoutedSecondary: "Botines Secundarios Localizados (Pilas de botín)",
+                gold: "Oro",
+                coke: "Cocaína",
+                weed: "Marihuana",
+                paint: "Cuadros",
+                cash: "Dinero en efectivo",
+                officeSafe: "Caja Fuerte de la Oficina (~$59,500)",
+                safeYes: "Saqueada (Sí)",
+                safeNo: "Omitida (No)",
+                eliteChallenge: "Desafío Élite (Por jugador)",
+                eliteNo: "Fallido / No",
+                eliteYes: "Completado (+$50,000)",
+                
+                configCasino: "Configuración: Diamond Casino",
+                vaultContents: "Contenido de la Bóveda",
+                casCash: "Dinero Efectivo ($2,115,000)",
+                casArt: "Obras de Arte ($2,585,000)",
+                casGold: "Oro ($2,843,500)",
+                casDia: "Diamantes ($3,619,000)",
+                gunman: "Pistolero (Parte de Crew)",
+                driver: "Conductor (Parte de Crew)",
+                hacker: "Hacker (Parte de Crew)",
+                damageLost: "Dinero Perdido por Daño",
+                eliteCasino: "Desafío Élite",
+                
+                configDoomsday: "Configuración: Golpe del Juicio Final",
+                actSelect: "Selección de Acto",
+                doomA1: "Acto I: Filtración de Datos ($812,500)",
+                doomA2: "Acto II: El Problema Bogdan ($1,187,500)",
+                doomA3: "Acto III: El Escenario del Juicio Final ($1,500,000)",
+                difficulty: "Dificultad",
+                diffNorm: "Normal",
+                diffHard: "Difícil (+25%)",
+                eliteDoom: "Desafío Élite",
+                
+                configClassic: "Configuración: Golpes de Apartamento",
+                heistMission: "Misión del Golpe",
+                clsFleeca: "El Golpe a Fleeca ($143,750 - 2 Jugadores)",
+                clsPrison: "Fuga de la Prisión ($500,000)",
+                clsHumane: "Asalto a Laboratorios Humane ($675,000)",
+                clsSeriesa: "Financiación Inicial ($505,000)",
+                clsPacific: "El Golpe a Pacific Standard ($1,250,000)",
+                clsHard: "Difícil (Valor estándar base)",
+                clsNorm: "Normal (-50% del modo Difícil)",
+                clsEasy: "Fácil (-75% del modo Difícil)",
+                pacificDrop: "Efectivo perdido en Pacific Standard",
+                
+                finaleCut: "Distribución del Botín Final (%)",
+                leaderCut: "Líder (Tú)",
+                m1Cut: "Miembro 1",
+                m2Cut: "Miembro 2",
+                m3Cut: "Miembro 3",
+                
+                statementTitle: "Estado de Cuenta Final",
+                optimalStrat: "Estrategia de Botín Óptima:",
+                bagUsage: "Uso Total de la Bolsa:",
+                grossLoot: "Botín Bruto Asegurado:",
+                safeCash: "Caja de la Oficina:",
+                pavelFee: "Tarifa de Pavel (2%):",
+                eliteBonus: "Bonificación Desafío Élite:",
+                maxProfit: "Ganancia Máxima Possible:",
+                mazeDeposits: "Depósitos Electrónicos de Maze Bank",
+                rowLeader: "Líder:",
+                rowM1: "Miembro 1:",
+                rowM2: "Miembro 2:",
+                rowM3: "Miembro 3:",
+                
+                errSum: "⚠️ <strong>Error de Asignación:</strong> El porcentaje total debe sumar exactamente 100%.",
+                errCut: "⚠️ <strong>Porcentaje Denegado:</strong> Rockstar prohíbe repartos inferiores al 15% para miembros activos (Revisa Miembro {x}).",
+                errCasino: "⚠️ <strong>Lanzamiento Bloqueado:</strong> El Golpe al Casino requiere un mínimo de 2 jugadores.",
+                errDoom: "⚠️ <strong>Lanzamiento Bloqueado:</strong> El Golpe del Juicio Final requiere al menos 2 jugadores.",
+                errFleeca: "⚠️ <strong>Límite de Equipo:</strong> El Golpe a Fleeca es exclusivamente para 2 jugadores.",
+                errClassic: "⚠️ <strong>Requisitos de Equipo:</strong> Este golpe clásico requiere un equipo completo de 4 jugadores.",
+                takeText: "Tomar: {x}x {item}",
+                noSecondary: "No se seleccionaron botines secundarios."
+            }
+        };
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+
+            // Direct Translation Mappings
+            document.getElementById('title').innerText = t.title;
+            document.getElementById('subtitle').innerText = t.subtitle;
+            document.getElementById('lbl-config-cayo').innerText = t.configCayo;
+            document.getElementById('lbl-hard-mode').innerText = t.hardMode;
+            document.getElementById('opt-hard-no').innerText = t.hardNo;
+            document.getElementById('opt-hard-yes').innerText = t.hardYes;
+            document.getElementById('lbl-cooldown').innerText = t.cooldown;
+            document.getElementById('opt-cool-no').innerText = t.coolNo;
+            document.getElementById('opt-cool-yes').innerText = t.coolYes;
+            document.getElementById('lbl-main-target').innerText = t.mainTarget;
+            document.getElementById('lbl-scouted-secondary').innerText = t.scoutedSecondary;
+            document.getElementById('lbl-loot-gold').innerText = t.gold;
+            document.getElementById('lbl-loot-coke').innerText = t.coke;
+            document.getElementById('lbl-loot-weed').innerText = t.weed;
+            document.getElementById('lbl-loot-paint').innerText = t.paint;
+            document.getElementById('lbl-loot-cash').innerText = t.cash;
+            document.getElementById('lbl-office-safe').innerText = t.officeSafe;
+            document.getElementById('opt-safe-yes').innerText = t.safeYes;
+            document.getElementById('opt-safe-no').innerText = t.safeNo;
+            document.getElementById('lbl-elite-challenge').innerText = t.eliteChallenge;
+            document.getElementById('opt-elite-no').innerText = t.eliteNo;
+            document.getElementById('opt-elite-yes').innerText = t.eliteYes;
+
+            document.getElementById('lbl-config-casino').innerText = t.configCasino;
+            document.getElementById('lbl-vault-contents').innerText = t.vaultContents;
+            document.getElementById('opt-cas-cash').innerText = t.casCash;
+            document.getElementById('opt-cas-art').innerText = t.casArt;
+            document.getElementById('opt-cas-gold').innerText = t.casGold;
+            document.getElementById('opt-cas-dia').innerText = t.casDia;
+            document.getElementById('lbl-gunman').innerText = t.gunman;
+            document.getElementById('lbl-driver').innerText = t.driver;
+            document.getElementById('lbl-hacker').innerText = t.hacker;
+            document.getElementById('lbl-damage-lost').innerText = t.damageLost;
+            document.getElementById('lbl-elite-casino').innerText = t.eliteCasino;
+            document.getElementById('opt-el-cas-no').innerText = t.hardNo;
+            document.getElementById('opt-el-cas-yes').innerText = t.eliteYes;
+
+            document.getElementById('lbl-config-doomsday').innerText = t.configDoomsday;
+            document.getElementById('lbl-act-select').innerText = t.actSelect;
+            document.getElementById('opt-doom-a1').innerText = t.doomA1;
+            document.getElementById('opt-doom-a2').innerText = t.doomA2;
+            document.getElementById('opt-doom-a3').innerText = t.doomA3;
+            document.getElementById('lbl-difficulty').innerText = t.difficulty;
+            document.getElementById('opt-diff-norm').innerText = t.diffNorm;
+            document.getElementById('opt-diff-hard').innerText = t.diffHard;
+            document.getElementById('lbl-elite-doom').innerText = t.eliteDoom;
+            document.getElementById('opt-el-doom-no').innerText = t.hardNo;
+            document.getElementById('opt-el-doom-yes').innerText = t.eliteYes;
+
+            document.getElementById('lbl-config-classic').innerText = t.configClassic;
+            document.getElementById('lbl-heist-mission').innerText = t.heistMission;
+            document.getElementById('opt-cls-fleeca').innerText = t.clsFleeca;
+            document.getElementById('opt-cls-prison').innerText = t.clsPrison;
+            document.getElementById('opt-cls-humane').innerText = t.clsHumane;
+            document.getElementById('opt-cls-seriesa').innerText = t.clsSeriesa;
+            document.getElementById('opt-cls-pacific').innerText = t.clsPacific;
+            document.getElementById('lbl-diff-classic').innerText = t.difficulty;
+            document.getElementById('opt-cls-hard').innerText = t.clsHard;
+            document.getElementById('opt-cls-norm').innerText = t.clsNorm;
+            document.getElementById('opt-cls-easy').innerText = t.clsEasy;
+            document.getElementById('lbl-pacific-drop').innerText = t.pacificDrop;
+
+            document.getElementById('lbl-finale-cut').innerText = t.finaleCut;
+            document.getElementById('lbl-leader-cut').innerText = t.leaderCut;
+            document.getElementById('lbl-m1-cut').innerText = t.m1Cut;
+            document.getElementById('lbl-m2-cut').innerText = t.m2Cut;
+            document.getElementById('lbl-m3-cut').innerText = t.m3Cut;
+
+            document.getElementById('lbl-statement-title').innerText = t.statementTitle;
+            document.getElementById('lbl-optimal-strat').innerText = t.optimalStrat;
+            document.getElementById('lbl-bag-usage').innerText = t.bagUsage;
+            document.getElementById('lbl-gross-loot').innerText = t.grossLoot;
+            document.getElementById('lbl-safe-cash').innerText = t.safeCash;
+            document.getElementById('lbl-pavel-fee').innerText = t.pavelFee;
+            document.getElementById('lbl-elite-bonus').innerText = t.eliteBonus;
+            document.getElementById('lbl-max-profit').innerText = t.maxProfit;
+            document.getElementById('lbl-maze-deposits').innerText = t.mazeDeposits;
+            document.getElementById('lbl-row-leader').innerText = t.rowLeader;
+            document.getElementById('lbl-row-m1').innerText = t.rowM1;
+            document.getElementById('lbl-row-m2').innerText = t.rowM2;
+            document.getElementById('lbl-row-m3').innerText = t.rowM3;
+
+            // Retranslate tabs
+            document.getElementById('btn-classic').innerText = lang === 'fr' ? "Appartement" : (lang === 'es' ? "Apartamento" : "Classic Apartment");
+
+            validateAndCalculate();
+        }
+
+        // Actual Cayo Perico secondary targets data sheet values
+        const LOOT_DATA = {
+            gold: { weight: 0.6667, stackVal: 330833 },
+            coke: { weight: 0.5000, stackVal: 200250 },
+            weed: { weight: 0.3750, stackVal: 132750 },
+            paint: { weight: 0.5000, stackVal: 168750 },
+            cash: { weight: 0.2500, stackVal: 81000 }
+        };
+
+        function switchHeist(heist) {
+            currentHeist = heist;
+            ['cayo', 'casino', 'doomsday', 'classic'].forEach(b => {
+                document.getElementById(`btn-${b}`).className = b === heist ? "px-4 py-3 font-bold uppercase rounded bg-yellow-500 text-black shadow-lg transition-all cursor-pointer text-sm" : "px-4 py-3 font-bold uppercase rounded bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all cursor-pointer text-sm";
+                document.getElementById(`sec-${b}`).classList.toggle('hidden', b !== heist);
+            });
+
+            document.getElementById('cayo-bag-analyzer').classList.toggle('hidden', heist !== 'cayo');
+            document.getElementById('row-safe').classList.toggle('hidden', heist !== 'cayo');
+            document.getElementById('row-pavel').classList.toggle('hidden', heist !== 'cayo');
+
+            document.getElementById('wrapper-cut-p3').classList.remove('hidden');
+            document.getElementById('wrapper-cut-p4').classList.remove('hidden');
+
+            if (heist === 'cayo') resetCuts([100, 0, 0, 0]);
+            else if (heist === 'casino' || heist === 'doomsday') resetCuts([85, 15, 0, 0]);
+            else if (heist === 'classic') { onClassicHeistChange(); return; }
+            
+            validateAndCalculate();
+        }
+
+        function onClassicHeistChange() {
+            if (document.getElementById('classic-main').value == "143750") {
+                document.getElementById('wrapper-cut-p3').classList.add('hidden');
+                document.getElementById('wrapper-cut-p4').classList.add('hidden');
+                resetCuts([50, 50, 0, 0]);
+            } else {
+                document.getElementById('wrapper-cut-p3').classList.remove('hidden');
+                document.getElementById('wrapper-cut-p4').classList.remove('hidden');
+                resetCuts([40, 20, 20, 20]);
+            }
+            validateAndCalculate();
+        }
+
+        function resetCuts(arr) {
+            for(let i=1; i<=4; i++) document.getElementById(`cut-p${i}`).value = arr[i-1];
+        }
+
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+        }
+
+        function validateAndCalculate() {
+            const cuts = [1, 2, 3, 4].map(i => parseInt(document.getElementById(`cut-p${i}`).value) || 0);
+            const totalPct = cuts.reduce((a, b) => a + b, 0);
+            const activePlayers = cuts.filter(p => p > 0).length;
+
+            const badge = document.getElementById('total-pct-badge');
+            const errorBox = document.getElementById('error-box');
+            const errorMsg = document.getElementById('error-msg');
+            const t = translations[currentLang];
+            
+            badge.innerText = `${currentLang === 'fr' ? 'Total' : (currentLang === 'es' ? 'Total' : 'Total')}: ${totalPct}%`;
+            badge.className = totalPct !== 100 ? "text-sm font-bold bg-red-950 px-3 py-1 rounded text-red-400 font-mono" : "text-sm font-bold bg-gray-800 px-3 py-1 rounded text-yellow-400 font-mono";
+
+            if (totalPct !== 100) {
+                errorBox.classList.remove('hidden'); errorMsg.innerHTML = t.errSum;
+                toggleResults(false); return;
+            }
+            for (let i = 0; i < cuts.length; i++) {
+                if (cuts[i] > 0 && cuts[i] < 15) {
+                    errorBox.classList.remove('hidden'); errorMsg.innerHTML = t.errCut.replace("{x}", i + 1);
+                    toggleResults(false); return;
+                }
+            }
+            if (currentHeist === 'casino' && activePlayers < 2) {
+                errorBox.classList.remove('hidden'); errorMsg.innerHTML = t.errCasino;
+                toggleResults(false); return;
+            }
+            if (currentHeist === 'doomsday' && activePlayers < 2) {
+                errorBox.classList.remove('hidden'); errorMsg.innerHTML = t.errDoom;
+                toggleResults(false); return;
+            }
+            if (currentHeist === 'classic') {
+                const isFleeca = document.getElementById('classic-main').value == "143750";
+                if (isFleeca && activePlayers !== 2) {
+                    errorBox.classList.remove('hidden'); errorMsg.innerHTML = t.errFleeca;
+                    toggleResults(false); return;
+                }
+                if (!isFleeca && activePlayers !== 4) {
+                    errorBox.classList.remove('hidden'); errorMsg.innerHTML = t.errClassic;
+                    toggleResults(false); return;
+                }
+            }
+
+            errorBox.classList.add('hidden');
+            toggleResults(true);
+
+            if (currentHeist === 'cayo') runCayo(cuts, activePlayers);
+            if (currentHeist === 'casino') runCasino(cuts, activePlayers);
+            if (currentHeist === 'doomsday') runDoomsday(cuts, activePlayers);
+            if (currentHeist === 'classic') runClassic(cuts, activePlayers);
+        }
+
+        function toggleResults(isValid) {
+            document.getElementById('results-wrapper').classList.toggle('opacity-10', !isValid);
+            if(!isValid) {
+                document.getElementById('res-net').innerText = "$0";
+                document.getElementById('gain-p1').innerText = "$0";
+                for(let i=2; i<=4; i++) document.getElementById(`row-gain-p${i}`).classList.add('hidden');
+            }
+        }
+
+        function dispatch(netBase, eliteBonus, cuts) {
+            for (let i = 1; i <= 4; i++) {
+                const row = document.getElementById(`row-gain-p${i}`);
+                const span = document.getElementById(`gain-p${i}`);
+                if (cuts[i-1] > 0) {
+                    if (i > 1) row.classList.remove('hidden');
+                    span.innerText = formatMoney((netBase * (cuts[i-1] / 100)) + eliteBonus);
+                } else { if (i > 1) row.classList.add('hidden'); }
+            }
+        }
+
+        function runCayo(cuts, activePlayers) {
+            const t = translations[currentLang];
+            let main = parseInt(document.getElementById('cayo-main').value);
+            if (document.getElementById('cayo-hard').value === 'yes') main *= 1.1;
+
+            const maxCapacity = activePlayers * 1.0;
+            document.getElementById('cayo-bag-max').innerText = maxCapacity.toFixed(2);
+
+            const inputs = {
+                gold: parseInt(document.getElementById('cayo-gold').value) || 0,
+                coke: parseInt(document.getElementById('cayo-coke').value) || 0,
+                weed: parseInt(document.getElementById('cayo-weed').value) || 0,
+                paint: parseInt(document.getElementById('cayo-paint').value) || 0,
+                cash: parseInt(document.getElementById('cayo-cash').value) || 0
+            };
+
+            const nerfFactor = document.getElementById('cayo-72h').value === 'yes' ? 0.9 : 1.0;
+
+            let itemsOrder = [
+                { id: 'gold', name: t.gold, d: LOOT_DATA.gold }, 
+                { id: 'coke', name: t.coke, d: LOOT_DATA.coke },
+                { id: 'paint', name: t.paint, d: LOOT_DATA.paint }, 
+                { id: 'weed', name: t.weed, d: LOOT_DATA.weed },
+                { id: 'cash', name: t.cash, d: LOOT_DATA.cash }
+            ];
+
+            let currentWeight = 0;
+            let secondaryProfit = 0;
+            let bagSummaryText = "";
+
+            itemsOrder.forEach(item => {
+                let availableStacks = inputs[item.id];
+                let stackWeight = item.d.weight;
+                let stackValue = item.d.stackVal * nerfFactor;
+
+                let stacksToTake = 0;
+                while (availableStacks > 0 && (currentWeight + stackWeight) <= maxCapacity) {
+                    availableStacks--;
+                    currentWeight += stackWeight;
+                    secondaryProfit += stackValue;
+                    stacksToTake++;
+                }
+
+                if (stacksToTake > 0) {
+                    bagSummaryText += `<div class="text-green-400">${t.takeText.replace("{x}", stacksToTake).replace("{item}", item.name)}</div>`;
+                }
+            });
+
+            if (bagSummaryText === "") bagSummaryText = t.noSecondary;
+            document.getElementById('cayo-bag-details').innerHTML = bagSummaryText;
+            document.getElementById('cayo-bag-sum').innerText = currentWeight.toFixed(2);
+
+            let safeMoney = parseInt(document.getElementById('cayo-safe').value);
+            let taxableSubtotal = main + secondaryProfit;
+
+            let fencingFee = taxableSubtotal * 0.10;
+            let pavelFee = taxableSubtotal * 0.02;
+            let elite = parseInt(document.getElementById('cayo-elite').value);
+
+            let netFinal = (taxableSubtotal - fencingFee - pavelFee) + safeMoney;
+
+            document.getElementById('res-brut').innerText = formatMoney(taxableSubtotal);
+            document.getElementById('res-safe').innerText = formatMoney(safeMoney);
+            document.getElementById('label-fencing').innerText = currentLang === 'fr' ? "Frais blanchiment (10%) :" : (currentLang === 'es' ? "Comisión de Lavado (10%):" : "Fencing Fee (10%):");
+            document.getElementById('res-fencing').innerText = "-" + formatMoney(fencingFee);
+            document.getElementById('res-pavel').innerText = "-" + formatMoney(pavelFee);
+            document.getElementById('res-elite').innerText = "+" + formatMoney(elite * activePlayers);
+            document.getElementById('res-net').innerText = formatMoney(netFinal + (elite * activePlayers));
+
+            dispatch(netFinal, elite, cuts);
+        }
+
+        function runCasino(cuts, activePlayers) {
+            let vault = parseInt(document.getElementById('casino-main').value) - (parseInt(document.getElementById('casino-damage').value) || 0);
+            if (vault < 0) vault = 0;
+            let lester = vault * 0.05;
+            let crew = vault * (parseFloat(document.getElementById('casino-gunman').value) + parseFloat(document.getElementById('casino-driver').value) + parseFloat(document.getElementById('casino-hacker').value));
+            let net = vault - lester - crew;
+            let elite = parseInt(document.getElementById('casino-elite').value);
+
+            document.getElementById('label-fencing').innerText = currentLang === 'fr' ? "Lester + Équipe de Soutien :" : (currentLang === 'es' ? "Lester + Equipo de Apoyo:" : "Lester + NPC Support Crew:");
+            document.getElementById('res-fencing').innerText = "-" + formatMoney(lester + crew);
+            document.getElementById('res-brut').innerText = formatMoney(vault);
+            document.getElementById('res-safe').innerText = "$0";
+            document.getElementById('res-elite').innerText = "+" + formatMoney(elite * activePlayers);
+            document.getElementById('res-net').innerText = formatMoney(net + (elite * activePlayers));
+            dispatch(net, elite, cuts);
+        }
+
+        function runDoomsday(cuts, activePlayers) {
+            let brut = parseInt(document.getElementById('doomsday-main').value);
+            if (document.getElementById('doomsday-diff').value === 'hard') brut *= 1.25;
+            let elite = parseInt(document.getElementById('doomsday-elite').value);
+
+            document.getElementById('res-brut').innerText = formatMoney(brut);
+            document.getElementById('res-safe').innerText = "$0";
+            document.getElementById('res-fencing').innerText = "$0";
+            document.getElementById('res-elite').innerText = "+" + formatMoney(elite * activePlayers);
+            document.getElementById('res-net').innerText = formatMoney(brut + (elite * activePlayers));
+            dispatch(brut, elite, cuts);
+        }
+
+        function runClassic(cuts, activePlayers) {
+            let hardVal = parseInt(document.getElementById('classic-main').value);
+            let diff = document.getElementById('classic-diff').value;
+            let brut = diff === 'normal' ? hardVal * 0.5 : (diff === 'easy' ? hardVal * 0.25 : hardVal);
+
+            if (document.getElementById('classic-main').value == "1250000") {
+                brut -= (parseInt(document.getElementById('classic-damage').value) || 0);
+                if (brut < 0) brut = 0;
+            }
+
+            document.getElementById('res-brut').innerText = formatMoney(brut);
+            document.getElementById('res-safe').innerText = "$0";
+            document.getElementById('res-fencing').innerText = "$0";
+            document.getElementById('res-elite').innerText = "+$0";
+            document.getElementById('res-net').innerText = formatMoney(brut);
+            dispatch(brut, 0, cuts);
+        }
+
+        // Init App Boot
+        switchHeist('cayo');
+        changeLanguage('en');
+    </script>
+</body>
+</html>
